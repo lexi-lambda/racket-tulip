@@ -11,7 +11,6 @@
 (define (tulip:read-syntax module-name in)
   (let* ([ast (parse in)]
          [mod (emit-module ast)])
-    (println mod)
     (list mod)))
 
 (define (tulip:read in)

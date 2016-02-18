@@ -198,7 +198,3 @@
 
 (define (parse in)
   (parse-result $$program in))
-
-#;(parse-result $$program
-              "fib = [ 0 => 0; 1 => 1; n => add (fib (subtract n 1)) (fib (subtract n 2)) ];
-               fib 6")
