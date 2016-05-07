@@ -5,11 +5,12 @@
 #:read        tulip:read
 #:read-syntax tulip:read-syntax
 
-(require "../parser.rkt"
+(require megaparsack
+         "../parser.rkt"
          "../emitter.rkt")
 
 (define (tulip:read-syntax module-name in)
-  (let* ([ast (parse in)]
+  (let* ([ast (parse-result! (parse-tulip in module-name))]
          [mod (emit-module ast)])
     (list mod)))
 

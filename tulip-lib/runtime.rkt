@@ -7,7 +7,7 @@
          racket/match
          racket/string)
 
-(provide @%lambda @%tag)
+(provide @%lambda @%tag @%chain)
 
 (define-syntax @%lambda
   (syntax-parser
@@ -37,3 +37,6 @@
   (syntax-parser
     [(_ name)
      #'(tag 'name '())]))
+
+(define-syntax-rule (@%chain a b)
+  (b a))

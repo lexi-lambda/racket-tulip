@@ -9,34 +9,24 @@
   [IDENTIFIER TAG-WORD FLAG-WORD NUMBER])
 (define-empty-tokens tulip*
   [EOF AUTOVAR EMPTY-ARGS OP-SEQUENCE
-   OP-CHAIN OP-DEFINE OP-CLAUSE
+   OP-CHAIN OP-DEFINE OP-CLAUSE OP-HOLE
    GROUP-OPEN GROUP-CLOSE
    LAMBDA-OPEN LAMBDA-CLOSE
    BLOCK-OPEN BLOCK-CLOSE])
 
 (define-lex-abbrevs
-  [space (:or whitespace blank iso-control)]
+  [space (:& (:~ #\newline) (:or whitespace blank iso-control))]
   
   ; 1. Datums and Operators
-  [identifier (:: letter (:* (:or letter digit)))]
+  [identifier (:: letter (:* (:or letter digit #\-)))]
   [tag-word (:: #\. identifier)]
   [flag-word (:: #\- identifier)]
   [number (:or (:: (:* digit) #\. (:+ digit))
                (:: (:+ digit) (:? #\.)))]
   [letter (:or (:/ #\a #\z) (:/ #\A #\Z))]
   [digit (:/ #\0 #\9)]
-  [sequence-delimiter #\;]
-  
-  ;[space (:& (:~ #\newline) (:or whitespace blank iso-control))]
-  ;[comment (:: #\# (:* (:~ #\newline)))]
-  ;[operator (:or #\$ #\> #\= "=>")]
-  ;[sequence (:or #\; #\newline)]
-  ;[delimiter (:or (char-set "()[]") space sequence #\!)]
-  #;[identifier (:& (complement operator)
-                  (:+ (:~ delimiter)))]
-  #;[number (:or (:+ (:/ #\0 #\9))
-               (:: (:* (:/ #\0 #\9)) #\. (:+ (:/ #\0 #\9))))]
-  #;[tag (:: #\. identifier)])
+  [sequence-delimiter (:or #\; #\newline)]
+  [sequence-delimiters (:: sequence-delimiter (:* (:* space) sequence-delimiter))])
 
 (define tulip-lexer
   (lexer-src-pos
@@ -51,13 +41,14 @@
    [#\> (token-OP-CHAIN)]
    [#\= (token-OP-DEFINE)]
    ["=>" (token-OP-CLAUSE)]
+   [#\_ (token-OP-HOLE)]
    
    [tag-word (token-TAG-WORD (string->symbol (substring lexeme 1)))]
    [flag-word (token-FLAG-WORD (string->symbol (substring lexeme 1)))]
    [identifier (token-IDENTIFIER (string->symbol lexeme))]
 
    [number (token-NUMBER (real->double-flonum (string->number lexeme)))]
-   [sequence-delimiter (token-OP-SEQUENCE)]
+   [sequence-delimiters (token-OP-SEQUENCE)]
 
    [(:+ space) (void)]
    [(eof) (token-EOF)]))

@@ -2,7 +2,7 @@
 
 (require "../runtime.rkt")
 (provide (all-from-out "../runtime.rkt")
-         #%module-begin #%datum
+         #%module-begin #%app #%datum #%top
          add subtract)
 
 (define ((add x) y)      (+ x y))
