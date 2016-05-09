@@ -184,10 +184,11 @@
 (define eof/p (label/p "end of file" (token/p 'EOF)))
 
 (define program/p
-  (do sequence-delimiter?/p
-      (many/trailing-sep/end/p top-level-form/p
-                               sequence-delimiter/p
-                               eof/p)))
+  (syntax/p
+   (do sequence-delimiter?/p
+       (many/trailing-sep/end/p top-level-form/p
+                                sequence-delimiter/p
+                                eof/p))))
 
 ;; ---------------------------------------------------------------------------------------------------
 
