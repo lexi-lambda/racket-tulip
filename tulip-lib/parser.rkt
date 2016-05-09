@@ -19,8 +19,8 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 
-; The many/trailing-sep/end/p and some/trailing-sep/end/p combinators are like many/sep/p and
-; some/sep/p, but they handle trailing separators, like in the following expression:
+; The many/trailing-sep/end/p and some/trailing-sep/end/p combinators are like many/sep*/p and
+; many/sep+/p, but they handle trailing separators, like in the following expression:
 ;
 ;   [ 0 => 1; 1 => 2; ]
 ;
@@ -135,10 +135,10 @@
       (pure pat)))
 
 (define tag-pattern/p
-  ((pure tag-pattern) tag-word/p (many/p pattern/p)))
+  ((pure tag-pattern) tag-word/p (many*/p pattern/p)))
 
 (define lambda-formals/p
-  (some/p pattern/p))
+  (many+/p pattern/p))
 
 (define lambda-clause/p
   (do [formals <- lambda-formals/p]
