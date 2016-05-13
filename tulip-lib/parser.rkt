@@ -49,6 +49,7 @@
 (struct flag-pair (word value) #:prefab)
 
 (struct number (value) #:prefab)
+(struct string (value) #:prefab)
 
 (struct application (fn arg) #:prefab)
 (struct application! (fn) #:prefab)
@@ -76,6 +77,7 @@
 (define tag-word/p   (wrap-token/p "tag-word"   tag-word   'TAG-WORD))
 (define flag-word/p  (wrap-token/p "flag-word"  flag-word  'FLAG-WORD))
 (define number/p     (wrap-token/p "number"     number     'NUMBER))
+(define string/p     (wrap-token/p "string"     string     'STRING))
 
 (define sequence-delimiter/p (token/p 'OP-SEQUENCE))
 (define sequence-delimiter?/p (or/p (hidden/p sequence-delimiter/p) void/p))
@@ -94,6 +96,7 @@
         (lazy/p block/p)
         tag-word/p
         number/p
+        string/p
         identifier/p))
 
 (define application/p

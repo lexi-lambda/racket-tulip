@@ -6,7 +6,7 @@
 (provide tulip tulip* lex)
 
 (define-tokens tulip
-  [IDENTIFIER TAG-WORD FLAG-WORD NUMBER])
+  [IDENTIFIER TAG-WORD FLAG-WORD NUMBER STRING])
 (define-empty-tokens tulip*
   [EOF AUTOVAR EMPTY-ARGS OP-SEQUENCE
    OP-CHAIN OP-DEFINE OP-CLAUSE OP-HOLE
@@ -23,6 +23,8 @@
   [flag-word (:: #\- identifier)]
   [number (:or (:: (:* digit) #\. (:+ digit))
                (:: (:+ digit) (:? #\.)))]
+  [single-quote-string (:: #\' identifier)]
+  [double-quote-string (:: #\" (:* (:~ #\")) #\")]
   [letter (:or (:/ #\a #\z) (:/ #\A #\Z))]
   [digit (:/ #\0 #\9)]
   [sequence-delimiter (:or #\; #\newline)]
@@ -48,6 +50,10 @@
    [identifier (token-IDENTIFIER (string->symbol lexeme))]
 
    [number (token-NUMBER (real->double-flonum (string->number lexeme)))]
+
+   [single-quote-string (token-STRING (substring lexeme 1))]
+   [double-quote-string (token-STRING (substring lexeme 1 (sub1 (string-length lexeme))))]
+
    [sequence-delimiters (token-OP-SEQUENCE)]
 
    [(:+ space) (void)]

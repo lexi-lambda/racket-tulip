@@ -59,6 +59,8 @@
            #:attr emitted #'(@%flag-pair word.emitted value.emitted)]
   [pattern #s(number value)
            #:attr emitted #'value]
+  [pattern #s(string value)
+           #:attr emitted #'value]
   [pattern #s(application fn:tulip-expr arg:tulip-expr)
            #:attr emitted (datum->syntax #f (list #'fn.emitted #'arg.emitted) #f #'fn.emitted)]
   [pattern #s(application! fn:tulip-expr)
