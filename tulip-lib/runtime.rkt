@@ -7,7 +7,14 @@
          racket/match
          racket/string)
 
-(provide @%lambda @%tag @%chain)
+(provide @%define-multiple-binders @%lambda @%tag @%chain)
+
+(define-syntax @%define-multiple-binders
+  (syntax-parser
+    [(_ id:id [id*:id ...] expr:expr)
+     (syntax-property #'(define id expr)
+                      'disappeared-binding
+                      (map syntax-local-introduce (attribute id*)))]))
 
 (define-syntax @%lambda
   (syntax-parser

@@ -2,6 +2,7 @@
 
 (require data/applicative
          data/monad
+         data/maybe
          (prefix-in monad: data/monad)
          tulip/lexer
          megaparsack
@@ -61,6 +62,7 @@
 (struct lambda-full (clauses) #:prefab)
 
 (struct definition (identifier expression) #:prefab)
+(struct function-definition (identifier formals expression) #:prefab)
 
 ;; ---------------------------------------------------------------------------------------------------
 
@@ -160,20 +162,26 @@
 
 ;; 3. Definitions
 
-(define declaration/p identifier/p)
+(define declaration/p
+  (do [id <- identifier/p]
+      [maybe-formals
+       <- (or/p (do (token/p 'OP-DEFINE)
+                    (pure nothing))
+                (do [formals <- lambda-formals/p]
+                    (token/p 'OP-DEFINE)
+                    (pure (just formals))))]
+      (pure (list id maybe-formals))))
 
 (define definition/p
   (label/p
    "definition"
-   ((pure definition)
-    (try/p (do [decl <- declaration/p]
-               (token/p 'OP-DEFINE)
-
-               ; the = token eats semicolons/newlines
-               sequence-delimiter?/p
-
-               (pure decl)))
-    expression/p)))
+   (do [decl <- (try/p declaration/p)]
+       ; the = token eats semicolons/newlines
+       sequence-delimiter?/p
+       [expr <- expression/p]
+       (match decl
+         [(list id (just formals)) (pure (function-definition id formals expr))]
+         [(list id (nothing))      (pure (definition id expr))]))))
 
 ;; 4. Whole Programs
 
