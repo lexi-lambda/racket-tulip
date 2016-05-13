@@ -61,6 +61,8 @@
            #:attr emitted #'value]
   [pattern #s(application fn:tulip-expr arg:tulip-expr)
            #:attr emitted (datum->syntax #f (list #'fn.emitted #'arg.emitted) #f #'fn.emitted)]
+  [pattern #s(application! fn:tulip-expr)
+           #:attr emitted (datum->syntax #f (list #'fn.emitted) #f #'fn.emitted)]
   [pattern #s(block [expr:tulip-expr-or-defn ...])
            #:attr emitted #'(let () expr.emitted ...)]
   [pattern #s(chain left:tulip-expr right:tulip-expr)

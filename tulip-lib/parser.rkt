@@ -51,6 +51,7 @@
 (struct number (value) #:prefab)
 
 (struct application (fn arg) #:prefab)
+(struct application! (fn) #:prefab)
 (struct block (body) #:prefab)
 (struct chain (left right) #:prefab)
 
@@ -96,7 +97,10 @@
         identifier/p))
 
 (define application/p
-  (chain-left+/p expression-term/p (pure application)))
+  (or/p (try/p (do [expr <- expression-term/p]
+                   (token/p 'EMPTY-ARGS)
+                   (pure (application! expr))))
+        (chain-left+/p expression-term/p (pure application))))
 
 (define chain/p
   (chain-left+/p application/p (do (token/p 'OP-CHAIN) (pure chain))))
@@ -140,7 +144,8 @@
   ((pure tag-pattern) tag-word/p (many*/p pattern/p)))
 
 (define lambda-formals/p
-  (many+/p pattern/p))
+  (or/p (do (token/p 'EMPTY-ARGS) (pure '()))
+        (many+/p pattern/p)))
 
 (define lambda-clause/p
   (do [formals <- lambda-formals/p]
