@@ -7,11 +7,11 @@ To install, clone this repository, then run `raco pkg install --link path/to/tul
 ```tulip
 #lang tulip
 
-decr = [ x => subtract x 1 ]
+decr x = subtract x 1
 
 test = {
-  is-even = [ 0 => .t; decr x > is-odd  ]
-  is-odd  = [ 0 => .f; decr x > is-even ]
+  is-even = [ 0 => .t; x => decr x > is-odd  ]
+  is-odd  = [ 0 => .f; x => decr x > is-even ]
   [ .even x => is-even x; .odd x => is-odd x ]
 }
 
