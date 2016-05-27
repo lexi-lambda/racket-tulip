@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require parser-tools/lex
-         (prefix-in : parser-tools/lex-sre))
+         (prefix-in : parser-tools/lex-sre)
+         racket/list)
 
 (provide tulip tulip* lex)
 
@@ -17,7 +18,6 @@
 (define-lex-abbrevs
   [space (:& (:~ #\newline) (:or whitespace blank iso-control))]
   
-  ; 1. Datums and Operators
   [identifier (:: letter (:* (:or letter digit #\-)))]
   [tag-word (:: #\. identifier)]
   [flag-word (:: #\- identifier)]
@@ -28,7 +28,8 @@
   [letter (:or (:/ #\a #\z) (:/ #\A #\Z))]
   [digit (:/ #\0 #\9)]
   [sequence-delimiter (:or #\; #\newline)]
-  [sequence-delimiters (:: sequence-delimiter (:* (:* space) sequence-delimiter))])
+
+  [comment (:: #\# (:* (:~ #\newline)))])
 
 (define tulip-lexer
   (lexer-src-pos
@@ -54,16 +55,30 @@
    [single-quote-string (token-STRING (substring lexeme 1))]
    [double-quote-string (token-STRING (substring lexeme 1 (sub1 (string-length lexeme))))]
 
-   [sequence-delimiters (token-OP-SEQUENCE)]
+   [sequence-delimiter (token-OP-SEQUENCE)]
 
+   [comment (void)]
    [(:+ space) (void)]
    [(eof) (token-EOF)]))
 
 (define (lex in)
   (port-count-lines! in)
-  (for*/list ([_ (in-naturals)]
-              [v (in-value (tulip-lexer in))]
-              #:unless (void? (position-token-token v))
-              #:final (eq? 'EOF (token-name (position-token-token v))))
-    v))
+  (reverse
+   (let loop ([acc '()])
+     (let ([v (tulip-lexer in)])
+       (cond
+         ; do some post-processing for special tokens that lex can’t quite handle on its own
+         [(or ; ignore #<void> tokens
+              (void? (position-token-token v))
+              ; ignore consecutive OP-SEQUENCE tokens
+              (and (not (empty? acc))
+                   (eq? 'OP-SEQUENCE (token-name (position-token-token (first acc))))
+                   (eq? 'OP-SEQUENCE (token-name (position-token-token v)))))
+          (loop acc)]
+         ; once we hit the EOF token, stop lexing
+         [(eq? 'EOF (token-name (position-token-token v)))
+          (cons v acc)]
+         ; otherwise, use the token and keep lexing
+         [else
+          (loop (cons v acc))])))))
 
