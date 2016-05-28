@@ -7,23 +7,15 @@
 
 (provide emit-module)
 
-(define/with-syntax -#%require (strip-context #'#%require))
-
-(define/with-syntax -@%define (strip-context #'@%define))
-(define/with-syntax -@%define-multiple-binders (strip-context #'@%define-multiple-binders))
-(define/with-syntax -@%lambda (strip-context #'@%lambda))
-(define/with-syntax -@%tag (strip-context #'@%tag))
-(define/with-syntax -@%chain (strip-context #'@%chain))
-
 (define (emit-module stx)
   (syntax-parse stx
     [(expr-or-def:tulip-top-level-form ...)
-     #'(begin expr-or-def.emitted ...)]))
+     (strip-context #'(@%begin expr-or-def.emitted ...))]))
 
 (define-splicing-syntax-class tulip-top-level-form
   #:attributes [emitted]
   [pattern #s(import module-name:tulip-require-spec)
-           #:attr emitted #'(-#%require module-name.emitted)]
+           #:attr emitted #'(#%require module-name.emitted)]
   [pattern expr-or-defn:tulip-expr-or-defn
            #:attr emitted #'expr-or-defn.emitted])
 
@@ -46,9 +38,9 @@
                                   #s(lambda-clause pats* expr*)
                                   ...]
            #:with lambda:tulip-expr #'#s(lambda-full [clause ...])
-           #:attr emitted #'(-@%define-multiple-binders id.emitted [id*.emitted ...] lambda.emitted)]
+           #:attr emitted #'(@%define-multiple-binders id.emitted [id*.emitted ...] lambda.emitted)]
   [pattern #s(definition id:tulip-expr expr:tulip-expr)
-           #:attr emitted #'(-@%define id.emitted expr.emitted)]
+           #:attr emitted #'(@%define id.emitted expr.emitted)]
   [pattern expr:tulip-expr
            #:attr emitted #'expr.emitted])
 
@@ -62,7 +54,7 @@
   [pattern id:tulip-id
            #:attr emitted #'id.emitted]
   [pattern #s(tag-word name:id)
-           #:attr emitted #'(-@%tag name)]
+           #:attr emitted #'(@%tag name)]
   [pattern #s(flag-word name:id)
            #:attr emitted #'(@%flag name)]
   [pattern #s(flag-pair word:tulip-expr value:tulip-expr)
@@ -76,11 +68,11 @@
   [pattern #s(application! fn:tulip-expr)
            #:attr emitted (datum->syntax #f (list #'fn.emitted) #f #'fn.emitted)]
   [pattern #s(block [expr:tulip-expr-or-defn ...])
-           #:attr emitted #'(let () expr.emitted ...)]
+           #:attr emitted #'(@%block expr.emitted ...)]
   [pattern #s(chain left:tulip-expr right:tulip-expr)
-           #:attr emitted #'(-@%chain left.emitted right.emitted)]
+           #:attr emitted #'(@%chain left.emitted right.emitted)]
   [pattern #s(lambda-full [clause:tulip-lambda-clause ...])
-           #:attr emitted #'(-@%lambda clause.emitted ...)])
+           #:attr emitted #'(@%lambda clause.emitted ...)])
 
 ; TODO: Make this less hacky once actual import syntax exists.
 (define-syntax-class tulip-require-spec
@@ -102,6 +94,6 @@
   [pattern #s(hole)
            #:attr emitted #'_]
   [pattern #s(tag-pattern #s(tag-word name:id) [value-pat:tulip-pattern ...])
-           #:attr emitted #'(-@%tag name value-pat.emitted ...)]
+           #:attr emitted #'(@%tag name value-pat.emitted ...)]
   [pattern other-expr:tulip-expr
            #:attr emitted #'other-expr.emitted])

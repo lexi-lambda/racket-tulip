@@ -7,7 +7,7 @@
          racket/match
          racket/string)
 
-(provide @%define-multiple-binders @%lambda @%tag @%chain)
+(provide @%define-multiple-binders @%lambda @%tag @%block @%chain)
 
 (define-syntax @%define-multiple-binders
   (syntax-parser
@@ -44,6 +44,9 @@
   (syntax-parser
     [(_ name)
      #'(tag 'name '())]))
+
+(define-syntax-rule (@%block expr ...)
+  (let () expr ...))
 
 (define-syntax-rule (@%chain a b)
   (b a))
