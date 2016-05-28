@@ -1,5 +1,7 @@
 #lang tulip
 
+@import "./assert.rkt"
+
 decr x = subtract x 1
 
 test v = {
@@ -8,5 +10,5 @@ test v = {
   v > [ .even x => is-even x; .odd x => is-odd x ]
 }
 
-test (.even 3) # => .f
-test (.odd 3)  # => .t
+test (.even 3) > assert-equal .f
+test (.odd 3)  > assert-equal .t

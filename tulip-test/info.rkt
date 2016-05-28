@@ -6,4 +6,5 @@
   '())
 (define build-deps
   '("base"
+    "rackunit-lib"
     "tulip-lib"))
