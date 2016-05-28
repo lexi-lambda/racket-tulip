@@ -7,6 +7,9 @@
 
 (provide emit-module)
 
+(define/with-syntax -#%require (strip-context #'#%require))
+
+(define/with-syntax -@%define (strip-context #'@%define))
 (define/with-syntax -@%define-multiple-binders (strip-context #'@%define-multiple-binders))
 (define/with-syntax -@%lambda (strip-context #'@%lambda))
 (define/with-syntax -@%tag (strip-context #'@%tag))
@@ -14,8 +17,15 @@
 
 (define (emit-module stx)
   (syntax-parse stx
-    [(expr-or-def:tulip-expr-or-defn ...)
+    [(expr-or-def:tulip-top-level-form ...)
      #'(begin expr-or-def.emitted ...)]))
+
+(define-splicing-syntax-class tulip-top-level-form
+  #:attributes [emitted]
+  [pattern #s(import module-name:tulip-require-spec)
+           #:attr emitted #'(-#%require module-name.emitted)]
+  [pattern expr-or-defn:tulip-expr-or-defn
+           #:attr emitted #'expr-or-defn.emitted])
 
 (define-splicing-syntax-class tulip-expr-or-defn
   #:attributes [emitted]
@@ -38,7 +48,7 @@
            #:with lambda:tulip-expr #'#s(lambda-full [clause ...])
            #:attr emitted #'(-@%define-multiple-binders id.emitted [id*.emitted ...] lambda.emitted)]
   [pattern #s(definition id:tulip-expr expr:tulip-expr)
-           #:attr emitted #'(define id.emitted expr.emitted)]
+           #:attr emitted #'(-@%define id.emitted expr.emitted)]
   [pattern expr:tulip-expr
            #:attr emitted #'expr.emitted])
 
@@ -71,6 +81,16 @@
            #:attr emitted #'(-@%chain left.emitted right.emitted)]
   [pattern #s(lambda-full [clause:tulip-lambda-clause ...])
            #:attr emitted #'(-@%lambda clause.emitted ...)])
+
+; TODO: Make this less hacky once actual import syntax exists.
+(define-syntax-class tulip-require-spec
+  #:attributes [emitted]
+  [pattern #s(string value)
+           #:attr emitted (if (regexp-match? #px"^([a-zA-Z0-9_-]+/)*[a-zA-Z0-9_-]+$"
+                                             (syntax->datum #'value))
+                              (format-id #f "~a" (syntax->datum #'value)
+                                         #:source #'value #:props #'value)
+                              #'value)])
 
 (define-syntax-class tulip-lambda-clause
   #:attributes [emitted]

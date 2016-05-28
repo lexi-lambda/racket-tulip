@@ -9,7 +9,7 @@
 (provide tulip tulip* lex lex-for-colorizer)
 
 (define-tokens tulip
-  [IDENTIFIER TAG-WORD FLAG-WORD NUMBER STRING])
+  [IDENTIFIER KEYWORD TAG-WORD FLAG-WORD NUMBER STRING])
 (define-empty-tokens tulip*
   [EOF AUTOVAR EMPTY-ARGS OP-SEQUENCE
    OP-CHAIN OP-DEFINE OP-CLAUSE OP-HOLE
@@ -22,6 +22,7 @@
   [space (:& (:~ #\newline) (:or whitespace blank iso-control))]
   
   [identifier (:: letter (:* (:or letter digit #\-)))]
+  [keyword (:: #\@ identifier)]
   [tag-word (:: #\. identifier)]
   [flag-word (:: #\- identifier)]
   [number (:or (:: (:* digit) #\. (:+ digit))
@@ -49,9 +50,10 @@
    ["=>" (token-OP-CLAUSE)]
    [#\_ (token-OP-HOLE)]
    
+   [identifier (token-IDENTIFIER (string->symbol lexeme))]
+   [keyword (token-KEYWORD (string->symbol (substring lexeme 1)))]
    [tag-word (token-TAG-WORD (string->symbol (substring lexeme 1)))]
    [flag-word (token-FLAG-WORD (string->symbol (substring lexeme 1)))]
-   [identifier (token-IDENTIFIER (string->symbol lexeme))]
 
    [number (token-NUMBER (real->double-flonum (string->number lexeme)))]
 
@@ -104,6 +106,8 @@
            (values 'string #f)]
           [(app token-name 'IDENTIFIER)
            (values 'symbol #f)]
+          [(app token-name 'KEYWORD)
+           (values 'hash-colon-keyword #f)]
           [(app token-name (or 'TAG-WORD 'FLAG-WORD))
            (values 'keyword #f)]
           

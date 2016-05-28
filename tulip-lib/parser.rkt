@@ -6,7 +6,8 @@
          (prefix-in monad: data/monad)
          tulip/lexer
          megaparsack
-         megaparsack/parser-tools/lex)
+         megaparsack/parser-tools/lex
+         (prefix-in lex: parser-tools/lex))
 
 (provide parse-tulip)
 
@@ -42,6 +43,8 @@
       (pure (cons x xs))))
 
 ;; ---------------------------------------------------------------------------------------------------
+
+(struct import (module-name) #:prefab)
 
 (struct identifier (name) #:prefab)
 (struct tag-word (name) #:prefab)
@@ -81,6 +84,12 @@
 
 (define sequence-delimiter/p (token/p 'OP-SEQUENCE))
 (define sequence-delimiter?/p (or/p (hidden/p sequence-delimiter/p) void/p))
+
+(define (keyword/p keyword-name)
+  (label/p (format "@~a" keyword-name)
+           (satisfy/p (λ (tok) (and (lex:token? tok)
+                                    (eq? (lex:token-name tok) 'KEYWORD)
+                                    (equal? (lex:token-value tok) keyword-name))))))
 
 ;; 2. Expressions
 
@@ -193,8 +202,14 @@
 
 ;; 4. Whole Programs
 
+(define directive/p
+  (do (keyword/p 'import)
+      [module-name <- string/p]
+      (pure (import module-name))))
+
 (define top-level-form/p
-  (or/p definition/p
+  (or/p directive/p
+        definition/p
         expression/p))
 
 (define eof/p (label/p "end of file" (token/p 'EOF)))
