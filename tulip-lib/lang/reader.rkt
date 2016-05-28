@@ -4,8 +4,10 @@
 
 #:read        tulip:read
 #:read-syntax tulip:read-syntax
+#:info        get-info
 
 (require megaparsack
+         "../lexer.rkt"
          "../parser.rkt"
          "../emitter.rkt")
 
@@ -16,3 +18,8 @@
 
 (define (tulip:read in)
   (syntax->datum (tulip:read-syntax in)))
+
+(define (get-info key default lookup-default)
+  (case key
+    [(color-lexer) lex-for-colorizer]
+    [else (lookup-default key default)]))

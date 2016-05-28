@@ -2,9 +2,11 @@
 
 (require parser-tools/lex
          (prefix-in : parser-tools/lex-sre)
-         racket/list)
+         racket/list
+         racket/match
+         racket/port)
 
-(provide tulip tulip* lex)
+(provide tulip tulip* lex lex-for-colorizer)
 
 (define-tokens tulip
   [IDENTIFIER TAG-WORD FLAG-WORD NUMBER STRING])
@@ -13,7 +15,8 @@
    OP-CHAIN OP-DEFINE OP-CLAUSE OP-HOLE
    GROUP-OPEN GROUP-CLOSE
    LAMBDA-OPEN LAMBDA-CLOSE
-   BLOCK-OPEN BLOCK-CLOSE])
+   BLOCK-OPEN BLOCK-CLOSE
+   WHITESPACE COMMENT])
 
 (define-lex-abbrevs
   [space (:& (:~ #\newline) (:or whitespace blank iso-control))]
@@ -57,8 +60,8 @@
 
    [sequence-delimiter (token-OP-SEQUENCE)]
 
-   [comment (void)]
-   [(:+ space) (void)]
+   [comment (token-COMMENT)]
+   [(:+ space) (token-WHITESPACE)]
    [(eof) (token-EOF)]))
 
 (define (lex in)
@@ -68,12 +71,14 @@
      (let ([v (tulip-lexer in)])
        (cond
          ; do some post-processing for special tokens that lex can’t quite handle on its own
-         [(or ; ignore #<void> tokens
-              (void? (position-token-token v))
+         [(or ; ignore whitespace tokens
+              (eq? 'WHITESPACE (position-token-token v))
+              ; ignore comment tokens
+              (eq? 'COMMENT (position-token-token v))
               ; ignore consecutive OP-SEQUENCE tokens
               (and (not (empty? acc))
-                   (eq? 'OP-SEQUENCE (token-name (position-token-token (first acc))))
-                   (eq? 'OP-SEQUENCE (token-name (position-token-token v)))))
+                   (eq? 'OP-SEQUENCE (position-token-token (first acc)))
+                   (eq? 'OP-SEQUENCE (position-token-token v))))
           (loop acc)]
          ; once we hit the EOF token, stop lexing
          [(eq? 'EOF (token-name (position-token-token v)))
@@ -82,3 +87,46 @@
          [else
           (loop (cons v acc))])))))
 
+(define (lex-for-colorizer in)
+  (with-handlers (; if the lexer fails, just mark that character as an error and hobble along
+                  [exn:fail:read?
+                   (λ (exn)
+                     (values (read-string 1 in) 'error #f
+                             (file-position in) (add1 (file-position in))))])
+    (match-let* ([peek-in (peeking-input-port in #:init-position (add1 (file-position in)))]
+                 [(position-token tok (position start _ _) (position end _ _)) (tulip-lexer peek-in)]
+                 [read-str (read-string (- end start) in)])
+      (define-values (token-type paren-type)
+        (match tok
+          [(app token-name 'NUMBER)
+           (values 'constant #f)]
+          [(app token-name 'STRING)
+           (values 'string #f)]
+          [(app token-name 'IDENTIFIER)
+           (values 'symbol #f)]
+          [(app token-name (or 'TAG-WORD 'FLAG-WORD))
+           (values 'keyword #f)]
+          
+          ['GROUP-OPEN
+           (values 'parenthesis '|(|)]
+          ['GROUP-CLOSE
+           (values 'parenthesis '|)|)]
+          ['LAMBDA-OPEN
+           (values 'parenthesis '|[|)]
+          ['LAMBDA-CLOSE
+           (values 'parenthesis '|]|)]
+          ['BLOCK-OPEN
+           (values 'parenthesis '|{|)]
+          ['BLOCK-CLOSE
+           (values 'parenthesis '|}|)]
+          
+          [(or 'EMPTY-ARGS 'OP-SEQUENCE 'OP-DEFINE 'OP-CHAIN 'OP-CLAUSE 'OP-HOLE)
+           (values 'other #f)]
+          
+          ['COMMENT
+           (values 'comment #f)]
+          ['WHITESPACE
+           (values 'white-space #f)]
+          ['EOF
+           (values 'eof #f)]))
+      (values read-str token-type paren-type start end))))
