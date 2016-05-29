@@ -3,17 +3,20 @@
 (require racket/match
          racket/syntax
          syntax/parse
-         syntax/strip-context)
+         syntax/strip-context
+         tulip/private/util/srcloc)
 
 (provide emit-module)
 
 (define (emit-module stx)
   (syntax-parse stx
+    #:context '|error while parsing module|
     [(expr-or-def:tulip-top-level-form ...)
      (strip-context #'(@%begin expr-or-def.emitted ...))]))
 
 (define-splicing-syntax-class tulip-top-level-form
   #:attributes [emitted]
+  #:description "top level form"
   [pattern #s(import module-name:tulip-require-spec)
            #:attr emitted #'(#%require module-name.emitted)]
   [pattern expr-or-defn:tulip-expr-or-defn
@@ -21,14 +24,15 @@
 
 (define-splicing-syntax-class tulip-expr-or-defn
   #:attributes [emitted]
+  #:description #f
   ; Function definitions next to one another with the same name should be parsed as a single function
   ; definition with multiple pattern clauses. For example, this:
   ;   is-zero 0 = .t
   ;   is-zero _ = .f
   ; Should be parsed like this:
   ;   is-zero = [ 0 => .t; _ => .f ]
-  [pattern (~seq #s(function-definition id:tulip-id pats expr)
-                 #s(function-definition id*:tulip-id
+  [pattern (~seq #s(function-definition id:tulip-unnamespaced-id pats expr)
+                 #s(function-definition id*:tulip-unnamespaced-id
                                         ; require each id* to be the same as id (otherwise, backtrack)
                                         (~fail #:unless (free-identifier=? #'id.emitted
                                                                            #'id*.emitted))
@@ -39,20 +43,30 @@
                                   ...]
            #:with lambda:tulip-expr #'#s(lambda-full [clause ...])
            #:attr emitted #'(@%define-multiple-binders id.emitted [id*.emitted ...] lambda.emitted)]
-  [pattern #s(definition id:tulip-expr expr:tulip-expr)
+  [pattern #s(definition id:tulip-unnamespaced-id expr:tulip-expr)
            #:attr emitted #'(@%define id.emitted expr.emitted)]
   [pattern expr:tulip-expr
            #:attr emitted #'expr.emitted])
 
 (define-syntax-class tulip-id
+  #:attributes [namespace name]
+  [pattern #s(identifier (~or namespace-stx:id (~and #f namespace-stx)) name:id)
+           #:attr namespace (and (syntax->datum #'namespace-stx) #'namespace-stx)])
+
+(define-syntax-class tulip-unnamespaced-id
   #:attributes [emitted]
-  [pattern #s(identifier name:id)
-           #:attr emitted #'name])
+  #:description "identifier"
+  [pattern id:tulip-id
+           #:fail-when (attribute id.namespace)
+           "expected an unnamespaced identifier, but a namespace was provided"
+           #:attr emitted #'id.name])
 
 (define-syntax-class tulip-expr
   #:attributes [emitted]
   [pattern id:tulip-id
-           #:attr emitted #'id.emitted]
+           #:attr emitted (if (attribute id.namespace)
+                              #'(@%namespaced id.namespace id.name)
+                              #'id.name)]
   [pattern #s(tag-word name:id)
            #:attr emitted #'(@%tag name)]
   [pattern #s(flag-word name:id)
@@ -74,15 +88,16 @@
   [pattern #s(lambda-full [clause:tulip-lambda-clause ...])
            #:attr emitted #'(@%lambda clause.emitted ...)])
 
-; TODO: Make this less hacky once actual import syntax exists.
 (define-syntax-class tulip-require-spec
   #:attributes [emitted]
   [pattern #s(string value)
-           #:attr emitted (if (regexp-match? #px"^([a-zA-Z0-9_-]+/)*[a-zA-Z0-9_-]+$"
-                                             (syntax->datum #'value))
-                              (format-id #f "~a" (syntax->datum #'value)
-                                         #:source #'value #:props #'value)
-                              #'value)])
+           #:attr emitted #'value]
+  [pattern id:tulip-id
+           #:attr emitted (if (attribute id.namespace)
+                              (format-id #f "~a/~a" #'id.namespace #'id.name
+                                         #:source (join-srclocs #'id.namespace #'id.name)
+                                         #:props #'id.name)
+                              #'id.name)])
 
 (define-syntax-class tulip-lambda-clause
   #:attributes [emitted]

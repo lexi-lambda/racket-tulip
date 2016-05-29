@@ -4,7 +4,8 @@
          (prefix-in : parser-tools/lex-sre)
          racket/list
          racket/match
-         racket/port)
+         racket/port
+         racket/string)
 
 (provide tulip tulip* lex lex-for-colorizer)
 
@@ -22,6 +23,7 @@
   [space (:& (:~ #\newline) (:or whitespace blank iso-control))]
   
   [identifier (:: letter (:* (:or letter digit #\-)))]
+  [namespaced-identifier (:: (:* (:: identifier #\/)) identifier)]
   [keyword (:: #\@ identifier)]
   [tag-word (:: #\. identifier)]
   [flag-word (:: #\- identifier)]
@@ -49,8 +51,8 @@
    [#\= (token-OP-DEFINE)]
    ["=>" (token-OP-CLAUSE)]
    [#\_ (token-OP-HOLE)]
-   
-   [identifier (token-IDENTIFIER (string->symbol lexeme))]
+
+   [namespaced-identifier (token-IDENTIFIER (map string->symbol (string-split lexeme "/")))]
    [keyword (token-KEYWORD (string->symbol (substring lexeme 1)))]
    [tag-word (token-TAG-WORD (string->symbol (substring lexeme 1)))]
    [flag-word (token-FLAG-WORD (string->symbol (substring lexeme 1)))]

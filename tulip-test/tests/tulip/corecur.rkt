@@ -1,6 +1,6 @@
 #lang tulip
 
-@import "./assert.rkt"
+@import "assert.rkt"
 
 decr x = subtract x 1
 

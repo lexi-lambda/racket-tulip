@@ -5,6 +5,7 @@
          data/maybe
          (prefix-in monad: data/monad)
          tulip/lexer
+         tulip/private/util/srcloc
          megaparsack
          megaparsack/parser-tools/lex
          (prefix-in lex: parser-tools/lex))
@@ -46,7 +47,7 @@
 
 (struct import (module-name) #:prefab)
 
-(struct identifier (name) #:prefab)
+(struct identifier (namespace name) #:prefab)
 (struct tag-word (name) #:prefab)
 (struct flag-word (name) #:prefab)
 (struct flag-pair (word value) #:prefab)
@@ -76,11 +77,24 @@
 (define (wrap-token/p label constructor token)
   (label/p label ((pure constructor) (syntax/p (token/p token)))))
 
-(define identifier/p (wrap-token/p "identifier" identifier 'IDENTIFIER))
-(define tag-word/p   (wrap-token/p "tag-word"   tag-word   'TAG-WORD))
-(define flag-word/p  (wrap-token/p "flag-word"  flag-word  'FLAG-WORD))
-(define number/p     (wrap-token/p "number"     number     'NUMBER))
-(define string/p     (wrap-token/p "string"     string     'STRING))
+(define tag-word/p  (wrap-token/p "tag-word"   tag-word   'TAG-WORD))
+(define flag-word/p (wrap-token/p "flag-word"  flag-word  'FLAG-WORD))
+(define number/p    (wrap-token/p "number"     number     'NUMBER))
+(define string/p    (wrap-token/p "string"     string     'STRING))
+
+(define identifier/p
+  (label/p
+   "identifier"
+   (do [stx <- (syntax/p (token/p 'IDENTIFIER))]
+       (match (syntax->datum stx)
+         [(list name)
+          (pure (identifier #f (datum->syntax #f name stx stx)))]
+         [(list namespaces ... name)
+          (let*-values ([(namespace) (string-join (map symbol->string namespaces) "/")]
+                        [(namespace-srcloc name-srcloc) (split-srcloc stx (string-length namespace) 1)])
+            (pure (identifier (and (not (empty? namespaces))
+                                   (datum->syntax #f (string->symbol namespace) namespace-srcloc stx))
+                              (datum->syntax #f name name-srcloc stx))))]))))
 
 (define sequence-delimiter/p (token/p 'OP-SEQUENCE))
 (define sequence-delimiter?/p (or/p (hidden/p sequence-delimiter/p) void/p))
@@ -204,7 +218,7 @@
 
 (define directive/p
   (do (keyword/p 'import)
-      [module-name <- string/p]
+      [module-name <- (or/p string/p identifier/p)]
       (pure (import module-name))))
 
 (define top-level-form/p

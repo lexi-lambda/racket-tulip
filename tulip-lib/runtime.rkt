@@ -7,7 +7,7 @@
          racket/match
          racket/string)
 
-(provide @%define-multiple-binders @%lambda @%tag @%block @%chain)
+(provide @%define-multiple-binders @%lambda @%namespaced @%tag @%block @%chain)
 
 (define-syntax @%define-multiple-binders
   (syntax-parser
@@ -25,6 +25,19 @@
      ; pattern-matching needs to be able to backtrack to previous arguments. Nested match-lambda**
      ; forms will create undesirable committing once a single match succeeds.
      #'(curry (match-lambda** [(formal ...) expr] ...))]))
+
+(define-syntax @%namespaced
+  (syntax-parser
+    [(_ namespace:id id:id)
+     ; This soup is effectively equivalent to (syntax-local-lift-require #'namespace #'id), which is
+     ; what this is doing. As suggested by the documentation, however, we need to apply
+     ; syntax-local-introduce to everything to prevent macro-introduction scopes from getting in the
+     ; way. Additionally, we need to add the 'original-for-check-syntax property to both syntax
+     ; objects, since original-ness does not seem to be preserved through the process.
+     (syntax-local-introduce
+      (syntax-local-lift-require
+       (syntax-local-introduce (syntax-property #'namespace 'original-for-check-syntax #t))
+       (syntax-local-introduce (syntax-property #'id 'original-for-check-syntax #t))))]))
 
 (struct tag (name fields)
   #:transparent
