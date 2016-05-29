@@ -4,11 +4,11 @@
          data/monad
          data/maybe
          (prefix-in monad: data/monad)
-         tulip/lexer
          tulip/private/util/srcloc
          megaparsack
          megaparsack/parser-tools/lex
-         (prefix-in lex: parser-tools/lex))
+         (prefix-in lex: parser-tools/lex)
+         "lexer.rkt")
 
 (provide parse-tulip)
 

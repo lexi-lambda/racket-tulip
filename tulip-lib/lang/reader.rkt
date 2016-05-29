@@ -7,9 +7,9 @@
 #:info        get-info
 
 (require megaparsack
-         "../lexer.rkt"
-         "../parser.rkt"
-         "../emitter.rkt")
+         "lexer.rkt"
+         "parser.rkt"
+         "emitter.rkt")
 
 (define (tulip:read-syntax module-name in)
   (let* ([ast (parse-result! (parse-tulip in module-name))]
