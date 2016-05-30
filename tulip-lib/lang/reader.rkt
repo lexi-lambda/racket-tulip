@@ -1,4 +1,4 @@
-#lang s-exp syntax/module-reader tulip/lang/runtime
+#lang s-exp syntax/module-reader tulip
 
 #:whole-body-readers? #t
 

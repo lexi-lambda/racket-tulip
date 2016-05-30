@@ -12,7 +12,7 @@
   (syntax-parse stx
     #:context '|error while parsing module|
     [(expr-or-def:tulip-top-level-form ...)
-     (strip-context #'(@%begin expr-or-def.emitted ...))]))
+     (strip-context #'(#%module-begin expr-or-def.emitted ...))]))
 
 (define-splicing-syntax-class tulip-top-level-form
   #:attributes [emitted]
@@ -20,10 +20,13 @@
   [pattern #s(import module-name:tulip-require-spec)
            #:attr emitted #'(#%require module-name.emitted)]
   [pattern expr-or-defn:tulip-expr-or-defn
-           #:attr emitted #'expr-or-defn.emitted])
+           #:attr emitted (if (attribute expr-or-defn.defined-id)
+                              #'(@%begin (#%provide expr-or-defn.defined-id)
+                                         expr-or-defn.emitted)
+                              #'expr-or-defn.emitted)])
 
 (define-splicing-syntax-class tulip-expr-or-defn
-  #:attributes [emitted]
+  #:attributes [emitted defined-id]
   #:description #f
   ; Function definitions next to one another with the same name should be parsed as a single function
   ; definition with multiple pattern clauses. For example, this:
@@ -42,11 +45,14 @@
                                   #s(lambda-clause pats* expr*)
                                   ...]
            #:with lambda:tulip-expr #'#s(lambda-full [clause ...])
-           #:attr emitted #'(@%define-multiple-binders id.emitted [id*.emitted ...] lambda.emitted)]
+           #:attr emitted #'(@%define-multiple-binders id.emitted [id*.emitted ...] lambda.emitted)
+           #:attr defined-id #'id.emitted]
   [pattern #s(definition id:tulip-unnamespaced-id expr:tulip-expr)
-           #:attr emitted #'(@%define id.emitted expr.emitted)]
+           #:attr emitted #'(@%define id.emitted expr.emitted)
+           #:attr defined-id #'id.emitted]
   [pattern expr:tulip-expr
-           #:attr emitted #'expr.emitted])
+           #:attr emitted #'expr.emitted
+           #:attr defined-id #f])
 
 (define-syntax-class tulip-id
   #:attributes [namespace name]

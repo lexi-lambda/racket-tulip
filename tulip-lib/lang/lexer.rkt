@@ -57,7 +57,7 @@
    [tag-word (token-TAG-WORD (string->symbol (substring lexeme 1)))]
    [flag-word (token-FLAG-WORD (string->symbol (substring lexeme 1)))]
 
-   [number (token-NUMBER (real->double-flonum (string->number lexeme)))]
+   [number (token-NUMBER (string->number lexeme))]
 
    [single-quote-string (token-STRING (substring lexeme 1))]
    [double-quote-string (token-STRING (substring lexeme 1 (sub1 (string-length lexeme))))]

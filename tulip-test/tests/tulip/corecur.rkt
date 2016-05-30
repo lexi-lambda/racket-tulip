@@ -1,8 +1,7 @@
 #lang tulip
 
+@import tulip/math
 @import "assert.rkt"
-
-decr x = subtract x 1
 
 test v = {
   is-even = [ 0 => .t; x => decr x > is-odd ]

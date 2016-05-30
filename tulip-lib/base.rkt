@@ -7,14 +7,10 @@
          racket/match
          racket/string)
 
-(provide #%module-begin #%app #%datum #%top #%require
+(provide #%module-begin #%app #%datum #%top #%require #%provide
          @%define-multiple-binders @%lambda @%namespaced @%tag @%block @%chain
          (rename-out [begin @%begin]
-                     [define @%define])
-         add subtract)
-
-(define ((add x) y)      (+ x y))
-(define ((subtract x) y) (- x y))
+                     [define @%define]))
 
 (define-syntax @%define-multiple-binders
   (syntax-parser
