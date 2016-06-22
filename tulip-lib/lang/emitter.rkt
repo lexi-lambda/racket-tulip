@@ -6,21 +6,27 @@
          syntax/strip-context
          tulip/private/util/srcloc)
 
-(provide emit-module)
+(provide emit-module emit-interaction)
 
 (define (emit-module stx)
   (syntax-parse stx
     #:context '|error while parsing module|
-    [(expr-or-def:tulip-top-level-form ...)
+    [((~var expr-or-def (tulip-top-level-form #f)) ...)
      (strip-context #'(#%module-begin expr-or-def.emitted ...))]))
 
-(define-splicing-syntax-class tulip-top-level-form
+(define (emit-interaction stx)
+  (syntax-parse stx
+    #:context '|error while parsing interaction|
+    [((~var expr-or-def (tulip-top-level-form #t)) ...)
+     (strip-context #'(@%begin expr-or-def.emitted ...))]))
+
+(define-splicing-syntax-class (tulip-top-level-form interaction?)
   #:attributes [emitted]
   #:description "top level form"
   [pattern #s(import module-name:tulip-require-spec)
            #:attr emitted #'(#%require module-name.emitted)]
   [pattern expr-or-defn:tulip-expr-or-defn
-           #:attr emitted (if (attribute expr-or-defn.defined-id)
+           #:attr emitted (if (and (not interaction?) (attribute expr-or-defn.defined-id))
                               #'(@%begin (#%provide expr-or-defn.defined-id)
                                          expr-or-defn.emitted)
                               #'expr-or-defn.emitted)])

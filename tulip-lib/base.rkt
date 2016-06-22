@@ -1,16 +1,25 @@
-#lang racket/base
+#lang tulip/private/configured-runtime-lang
 
 (require (for-syntax racket/base
                      syntax/parse)
          racket/format
          racket/function
          racket/match
-         racket/string)
+         racket/string
+         (prefix-in base: racket/base))
 
-(provide #%module-begin #%app #%datum #%top #%require #%provide
+(provide #%app #%datum #%top #%top-interaction #%require #%provide
          @%define-multiple-binders @%lambda @%namespaced @%tag @%block @%chain
-         (rename-out [begin @%begin]
+         (rename-out [@%module-begin #%module-begin]
+                     [begin @%begin]
                      [define @%define]))
+
+(define-syntax-rule (@%module-begin form ...)
+  (base:#%module-begin
+   (module configure-runtime racket/base
+     (require tulip/lang/configure-runtime)
+     (configure-runtime!))
+   form ...))
 
 (define-syntax @%define-multiple-binders
   (syntax-parser
