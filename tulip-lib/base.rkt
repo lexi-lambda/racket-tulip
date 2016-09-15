@@ -36,7 +36,8 @@
      ; desugaring implemented by generating nested match-lambda** forms won’t work because
      ; pattern-matching needs to be able to backtrack to previous arguments. Nested match-lambda**
      ; forms will create undesirable committing once a single match succeeds.
-     #'(curry (match-lambda** [(formal ...) expr] ...))]))
+     #`(curry #,(syntax/loc this-syntax
+                  (match-lambda** [(formal ...) expr] ...)))]))
 
 (define-syntax @%namespaced
   (syntax-parser
@@ -65,10 +66,12 @@
 (define-match-expander @%tag
   (syntax-parser
     [(_ name field ...)
-     #'(tag 'name (list field ...))])
+     (syntax/loc this-syntax
+       (tag 'name (list field ...)))])
   (syntax-parser
     [(_ name)
-     #'(tag 'name '())]))
+     (syntax/loc this-syntax
+       (tag 'name '()))]))
 
 (define-syntax-rule (@%block expr ...)
   (let () expr ...))

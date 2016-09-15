@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/match
+(require racket/list
+         racket/match
          racket/syntax
          syntax/parse
          syntax/strip-context
@@ -40,17 +41,23 @@
   ;   is-zero _ = .f
   ; Should be parsed like this:
   ;   is-zero = [ 0 => .t; _ => .f ]
-  [pattern (~seq #s(function-definition id:tulip-unnamespaced-id pats expr)
-                 #s(function-definition id*:tulip-unnamespaced-id
-                                        ; require each id* to be the same as id (otherwise, backtrack)
-                                        (~fail #:unless (free-identifier=? #'id.emitted
-                                                                           #'id*.emitted))
-                                        pats* expr*)
+  [pattern (~seq {~and def #s(function-definition id:tulip-unnamespaced-id pats expr)}
+                 {~and def* #s(function-definition
+                               id*:tulip-unnamespaced-id
+                               ; require each id* to be the same as id (otherwise, backtrack)
+                               (~fail #:unless (free-identifier=? #'id.emitted
+                                                                  #'id*.emitted))
+                               pats* expr*)}
                  ...)
+           #:do [(define this-srcloc
+                   (let ([matched-syntax #'(def def* ...)])
+                     (join-srclocs (first (syntax->list matched-syntax))
+                                   (last (syntax->list matched-syntax)))))]
            #:with [clause ...] #'[#s(lambda-clause pats expr)
                                   #s(lambda-clause pats* expr*)
                                   ...]
-           #:with lambda:tulip-expr #'#s(lambda-full [clause ...])
+           #:with lambda:tulip-expr (datum->syntax #f (syntax-e #'#s(lambda-full [clause ...]))
+                                                   this-srcloc)
            #:attr emitted #'(@%define-multiple-binders id.emitted [id*.emitted ...] lambda.emitted)
            #:attr defined-id #'id.emitted]
   [pattern #s(definition id:tulip-unnamespaced-id expr:tulip-expr)
@@ -77,28 +84,36 @@
   #:attributes [emitted]
   [pattern id:tulip-id
            #:attr emitted (if (attribute id.namespace)
-                              #'(@%namespaced id.namespace id.name)
+                              (syntax/loc this-syntax
+                                (@%namespaced id.namespace id.name))
                               #'id.name)]
   [pattern #s(tag-word name:id)
-           #:attr emitted #'(@%tag name)]
+           #:attr emitted (syntax/loc this-syntax
+                            (@%tag name))]
   [pattern #s(flag-word name:id)
-           #:attr emitted #'(@%flag name)]
+           #:attr emitted (syntax/loc this-syntax
+                            (@%flag name))]
   [pattern #s(flag-pair word:tulip-expr value:tulip-expr)
-           #:attr emitted #'(@%flag-pair word.emitted value.emitted)]
+           #:attr emitted (syntax/loc this-syntax
+                            (@%flag-pair word.emitted value.emitted))]
   [pattern #s(number value)
            #:attr emitted #'value]
   [pattern #s(string value)
            #:attr emitted #'value]
   [pattern #s(application fn:tulip-expr arg:tulip-expr)
-           #:attr emitted (datum->syntax #f (list #'fn.emitted #'arg.emitted) #f #'fn.emitted)]
+           #:attr emitted (datum->syntax #f (list #'fn.emitted #'arg.emitted)
+                                         this-syntax #'fn.emitted)]
   [pattern #s(application! fn:tulip-expr)
-           #:attr emitted (datum->syntax #f (list #'fn.emitted) #f #'fn.emitted)]
+           #:attr emitted (datum->syntax #f (list #'fn.emitted) this-syntax #'fn.emitted)]
   [pattern #s(block [expr:tulip-expr-or-defn ...])
-           #:attr emitted #'(@%block expr.emitted ...)]
+           #:attr emitted (syntax/loc this-syntax
+                            (@%block expr.emitted ...))]
   [pattern #s(chain left:tulip-expr right:tulip-expr)
-           #:attr emitted #'(@%chain left.emitted right.emitted)]
+           #:attr emitted (syntax/loc this-syntax
+                            (@%chain left.emitted right.emitted))]
   [pattern #s(lambda-full [clause:tulip-lambda-clause ...])
-           #:attr emitted #'(@%lambda clause.emitted ...)])
+           #:attr emitted (syntax/loc this-syntax
+                            (@%lambda clause.emitted ...))])
 
 (define-syntax-class tulip-require-spec
   #:attributes [emitted]

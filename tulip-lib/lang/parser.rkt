@@ -123,10 +123,11 @@
         identifier/p))
 
 (define application/p
-  (or/p (try/p (do [expr <- expression-term/p]
-                   (token/p 'EMPTY-ARGS)
-                   (pure (application! expr))))
-        (chain-left+/p expression-term/p (pure application))))
+  (syntax/p
+   (or/p (try/p (do [expr <- expression-term/p]
+                  (token/p 'EMPTY-ARGS)
+                  (pure (application! expr))))
+         (chain-left+/p expression-term/p (pure application)))))
 
 (define chain/p
   (chain-left+/p application/p (do (token/p 'OP-CHAIN) (pure chain))))
@@ -206,13 +207,13 @@
 (define definition/p
   (label/p
    "definition"
-   (do [decl <- (try/p declaration/p)]
-       ; the = token eats semicolons/newlines
-       sequence-delimiter?/p
-       [expr <- expression/p]
-       (match decl
-         [(list id (just formals)) (pure (function-definition id formals expr))]
-         [(list id (nothing))      (pure (definition id expr))]))))
+   (syntax/p (do [decl <- (try/p declaration/p)]
+               ; the = token eats semicolons/newlines
+               sequence-delimiter?/p
+               [expr <- expression/p]
+               (match decl
+                 [(list id (just formals)) (pure (function-definition id formals expr))]
+                 [(list id (nothing))      (pure (definition id expr))])))))
 
 ;; 4. Whole Programs
 
