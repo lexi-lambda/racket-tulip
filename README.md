@@ -7,7 +7,7 @@ To install, just run `raco pkg install tulip`. You should then be able to write 
 ```tulip
 #lang tulip
 
-decr x = subtract x 1
+@import tulip/math
 
 test = {
   is-even = [ 0 => .t; x => decr x > is-odd  ]
