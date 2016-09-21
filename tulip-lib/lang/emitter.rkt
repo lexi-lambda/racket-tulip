@@ -87,6 +87,8 @@
                               (syntax/loc this-syntax
                                 (@%namespaced id.namespace id.name))
                               #'id.name)]
+  [pattern #s(chain-slot)
+           #:attr emitted (syntax/loc this-syntax @%chain-slot)]
   [pattern #s(tag-word name:id)
            #:attr emitted (syntax/loc this-syntax
                             (@%tag name))]

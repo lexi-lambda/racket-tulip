@@ -15,7 +15,7 @@
    INVALID-IDENTIFIER])
 (define-empty-tokens tulip*
   [EOF AUTOVAR EMPTY-ARGS OP-SEQUENCE
-   OP-CHAIN OP-DEFINE OP-CLAUSE OP-HOLE
+   OP-CHAIN OP-CHAIN-SLOT OP-DEFINE OP-CLAUSE OP-HOLE
    GROUP-OPEN GROUP-CLOSE
    LAMBDA-OPEN LAMBDA-CLOSE
    BLOCK-OPEN BLOCK-CLOSE
@@ -53,6 +53,7 @@
    [#\= (token-OP-DEFINE)]
    ["=>" (token-OP-CLAUSE)]
    [#\_ (token-OP-HOLE)]
+   [#\- (token-OP-CHAIN-SLOT)]
 
    [namespaced-identifier
     (if (regexp-match-exact? #px"([a-zA-Z][a-zA-Z0-9-]*/)*[a-zA-Z][a-zA-Z0-9-]*" lexeme)
@@ -137,7 +138,7 @@
           ['BLOCK-CLOSE
            (values 'parenthesis '|}|)]
           
-          [(or 'EMPTY-ARGS 'OP-SEQUENCE 'OP-DEFINE 'OP-CHAIN 'OP-CLAUSE 'OP-HOLE)
+          [(or 'EMPTY-ARGS 'OP-SEQUENCE 'OP-DEFINE 'OP-CHAIN 'OP-CHAIN-SLOT 'OP-CLAUSE 'OP-HOLE)
            (values 'other #f)]
           
           ['COMMENT

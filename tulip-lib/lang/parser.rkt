@@ -60,6 +60,7 @@
 (struct block (body) #:prefab)
 (struct chain (left right) #:prefab)
 
+(define chain-slot #s(chain-slot))
 (define hole #s(hole))
 
 (struct tag-pattern (tag value-patterns) #:prefab)
@@ -81,6 +82,10 @@
 (define flag-word/p (wrap-token/p "flag-word"  flag-word  'FLAG-WORD))
 (define number/p    (wrap-token/p "number"     number     'NUMBER))
 (define string/p    (wrap-token/p "string"     string     'STRING))
+
+(define chain-slot/p
+  (label/p "hole" (syntax/p (do (token/p 'OP-CHAIN-SLOT)
+                                (pure chain-slot)))))
 
 (define identifier/p
   (label/p
@@ -120,7 +125,8 @@
         tag-word/p
         number/p
         string/p
-        identifier/p))
+        identifier/p
+        chain-slot/p))
 
 (define application/p
   (syntax/p
@@ -149,8 +155,9 @@
 ;; 2.1 Lambdas
 
 (define hole/p
-  (label/p "hole" (do (token/p 'OP-HOLE)
-                      (pure hole))))
+  (label/p "hole"
+           (syntax/p (do (token/p 'OP-HOLE)
+                         (pure hole)))))
 
 (define pattern/p
   (label/p

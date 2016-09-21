@@ -1,7 +1,9 @@
 #lang tulip/private/configured-runtime-lang
 
 (require (for-syntax racket/base
-                     syntax/parse)
+                     racket/function
+                     syntax/parse
+                     "private/util/syntax-loc-props.rkt")
          racket/format
          racket/function
          racket/match
@@ -9,7 +11,7 @@
          (prefix-in base: racket/base))
 
 (provide #%app #%datum #%top #%top-interaction #%require #%provide
-         @%define-multiple-binders @%lambda @%namespaced @%tag @%block @%chain
+         @%define-multiple-binders @%lambda @%namespaced @%tag @%block @%chain @%chain-slot
          (rename-out [@%module-begin #%module-begin]
                      [begin @%begin]
                      [define @%define]))
@@ -76,5 +78,30 @@
 (define-syntax-rule (@%block expr ...)
   (let () expr ...))
 
-(define-syntax-rule (@%chain a b)
-  (b a))
+(define-syntax (@%chain-slot stx)
+  (raise-syntax-error '- "cannot be used except within a chain" stx))
+
+(begin-for-syntax
+  (define-syntax-class application-with-chain-slot
+    #:description #f
+    #:literals [@%chain-slot]
+    [pattern @%chain-slot
+             #:attr replace-slot identity]
+    [pattern (f:expr @%chain-slot)
+             #:attr replace-slot
+               (λ (replacement)
+                 (quasisyntax/loc/props this-syntax
+                   (f #,replacement)))]
+    [pattern (f:application-with-chain-slot arg:expr)
+             #:attr replace-slot
+               (λ (replacement)
+                 (quasisyntax/loc/props this-syntax
+                   (#,((attribute f.replace-slot) replacement) arg)))]))
+
+(define-syntax @%chain
+  (syntax-parser
+    #:literals [@%chain-slot]
+    [(_ a:expr b:application-with-chain-slot)
+     ((attribute b.replace-slot) #'a)]
+    [(_ a:expr b:expr)
+     #'(b a)]))
