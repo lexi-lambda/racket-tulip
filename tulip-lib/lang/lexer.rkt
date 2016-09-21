@@ -5,12 +5,14 @@
          racket/list
          racket/match
          racket/port
-         racket/string)
+         racket/string
+         syntax/readerr)
 
 (provide tulip tulip* lex lex-for-colorizer)
 
 (define-tokens tulip
-  [IDENTIFIER KEYWORD TAG-WORD FLAG-WORD NUMBER STRING])
+  [IDENTIFIER KEYWORD TAG-WORD FLAG-WORD NUMBER STRING
+   INVALID-IDENTIFIER])
 (define-empty-tokens tulip*
   [EOF AUTOVAR EMPTY-ARGS OP-SEQUENCE
    OP-CHAIN OP-DEFINE OP-CLAUSE OP-HOLE
@@ -23,7 +25,7 @@
   [space (:& (:~ #\newline) (:or whitespace blank iso-control))]
   
   [identifier (:: letter (:* (:or letter digit #\-)))]
-  [namespaced-identifier (:: (:* (:: identifier #\/)) identifier)]
+  [namespaced-identifier (:: (:? #\/) (:+ (:: identifier (:* #\/))))]
   [keyword (:: #\@ identifier)]
   [tag-word (:: #\. identifier)]
   [flag-word (:: #\- identifier)]
@@ -52,7 +54,10 @@
    ["=>" (token-OP-CLAUSE)]
    [#\_ (token-OP-HOLE)]
 
-   [namespaced-identifier (token-IDENTIFIER (map string->symbol (string-split lexeme "/")))]
+   [namespaced-identifier
+    (if (regexp-match-exact? #px"([a-zA-Z][a-zA-Z0-9-]*/)*[a-zA-Z][a-zA-Z0-9-]*" lexeme)
+        (token-IDENTIFIER (map string->symbol (string-split lexeme "/")))
+        (token-INVALID-IDENTIFIER lexeme))]
    [keyword (token-KEYWORD (string->symbol (substring lexeme 1)))]
    [tag-word (token-TAG-WORD (string->symbol (substring lexeme 1)))]
    [flag-word (token-FLAG-WORD (string->symbol (substring lexeme 1)))]
@@ -87,6 +92,12 @@
          ; once we hit the EOF token, stop lexing
          [(eq? 'EOF (token-name (position-token-token v)))
           (cons v acc)]
+         ; raise an error for invalid identifiers
+         [(eq? 'INVALID-IDENTIFIER (token-name (position-token-token v)))
+          (match-let ([(position-token (app token-value invalid-id)
+                                       (position start line col) (position end _ _)) v])
+            (raise-read-error (format "invalid identifier: ~a" invalid-id)
+                              (object-name in) line col start (- end start)))]
          ; otherwise, use the token and keep lexing
          [else
           (loop (cons v acc))])))))
@@ -134,5 +145,8 @@
           ['WHITESPACE
            (values 'white-space #f)]
           ['EOF
-           (values 'eof #f)]))
+           (values 'eof #f)]
+
+          [(app token-name 'INVALID-IDENTIFIER)
+           (values 'error #f)]))
       (values read-str token-type paren-type start end))))
