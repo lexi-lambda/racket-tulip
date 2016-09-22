@@ -89,6 +89,8 @@
                               #'id.name)]
   [pattern #s(chain-slot)
            #:attr emitted (syntax/loc this-syntax @%chain-slot)]
+  [pattern #s(autovar)
+           #:attr emitted (syntax/loc this-syntax @%auto-var)]
   [pattern #s(tag-word name:id)
            #:attr emitted (syntax/loc this-syntax
                             (@%tag name))]
@@ -115,7 +117,10 @@
                             (@%chain left.emitted right.emitted))]
   [pattern #s(lambda-full [clause:tulip-lambda-clause ...])
            #:attr emitted (syntax/loc this-syntax
-                            (@%lambda clause.emitted ...))])
+                            (@%lambda clause.emitted ...))]
+  [pattern #s(lambda-full clause:tulip-expr)
+           #:attr emitted (syntax/loc this-syntax
+                            (@%auto-lambda clause.emitted))])
 
 (define-syntax-class tulip-require-spec
   #:attributes [emitted]

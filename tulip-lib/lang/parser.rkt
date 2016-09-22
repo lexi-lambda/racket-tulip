@@ -62,11 +62,13 @@
 
 (define chain-slot #s(chain-slot))
 (define hole #s(hole))
+(define autovar #s(autovar))
 
 (struct tag-pattern (tag value-patterns) #:prefab)
 
 (struct lambda-clause (formals expression) #:prefab)
 (struct lambda-full (clauses) #:prefab)
+(struct lambda-short (clause) #:prefab)
 
 (struct definition (identifier expression) #:prefab)
 (struct function-definition (identifier formals expression) #:prefab)
@@ -86,6 +88,10 @@
 (define chain-slot/p
   (label/p "hole" (syntax/p (do (token/p 'OP-CHAIN-SLOT)
                                 (pure chain-slot)))))
+
+(define autovar/p
+  (label/p "autovar" (syntax/p (do (token/p 'OP-AUTOVAR)
+                                   (pure autovar)))))
 
 (define identifier/p
   (label/p
@@ -191,13 +197,23 @@
       [expr <- expression/p]
       (pure (lambda-clause formals expr))))
 
-(define lambda/p
+(define lambda-full/p
   (do (token/p 'LAMBDA-OPEN)
       sequence-delimiter?/p
       [clauses <- (some/trailing-sep/end/p lambda-clause/p
                                            sequence-delimiter/p
                                            (token/p 'LAMBDA-CLOSE))]
       (pure (lambda-full clauses))))
+
+(define lambda-short/p
+  (do (token/p 'LAMBDA-OPEN)
+      [expr <- expression/p]
+      (token/p 'LAMBDA-CLOSE)
+      (pure (lambda-short expr))))
+
+(define lambda/p
+  (or/p (try/p lambda-full/p)
+        lambda-short/p))
 
 ;; 3. Definitions
 

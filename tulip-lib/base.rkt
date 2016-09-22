@@ -41,6 +41,12 @@
      #`(curry #,(syntax/loc this-syntax
                   (match-lambda** [(formal ...) expr] ...)))]))
 
+(define-syntax (@%auto-var stx)
+  (raise-syntax-error '$ "cannot be used except within shorthand lambda syntax" stx))
+
+(define-syntax @%auto-lambda
+  (syntax-parser))
+
 (define-syntax @%namespaced
   (syntax-parser
     [(_ namespace:id id:id)
